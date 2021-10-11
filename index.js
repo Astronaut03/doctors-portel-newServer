@@ -1,7 +1,7 @@
 const express = require('express')
 const { MongoClient } = require('mongodb');
 //const {ObjectId} = require('mongodb');
-//const fs = require('fs-extra');
+const fs = require('fs-extra');
 const fileUpload = require('express-fileupload');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -29,6 +29,7 @@ app.get('/', (req, res) => {
 
 
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
 client.connect(err => {
   const appointmentCollection = client.db("doctorsPortel").collection("appointments");
   // perform actions on the collection object
@@ -76,7 +77,7 @@ app.post('/appointmentByDate', (req, res) => {
     })
     })
     
-});
+})
 
 app.post('/addADoctor', (req, res) => {
     const file = req.files.file;
@@ -88,37 +89,36 @@ app.post('/addADoctor', (req, res) => {
 
   
     
-    // const filePath = `${__dirname}/doctors/${file.name}`;
-    // file.mv(filePath, err => {
-    //     if(err){
-    //         console.log(err);
-    //         res.status(500).send({msg: 'failed to upload image'});
-    //     }
+    const filePath = `${__dirname}/doctors/${file.name}`;
+    file.mv(filePath, err => {
+        if(err){
+            console.log(err);
+            res.status(500).send({msg: 'failed to upload image'});
+        }
 
-        const newImg = file.data;
+        const newImg = fs.readFileSync(filePath);
         const encImg = newImg.toString('base64');
 
         var image = {
-        contentType: file.mimetype,
-        size: file.size,
+        contentType: req.files.file.mimetype,
+        size: req.files.file.size,
         img: Buffer.from(encImg, 'base64')
         };
 
         doctorCollection.insertOne({ name, email, image})
         .then(result => {
-            // fs.remove(filePath, error => {
-            //     if(error) {
-            //     console.log(error);
-            //     res.status(500).send({msg: 'failed to upload image'});
-            //     }
+            fs.remove(filePath, error => {
+                if(error) {
+                console.log(error);
+                res.status(500).send({msg: 'failed to upload image'});
+                }
                 res.send(result.insertedCount > 0);
-            //})
+            })
            
         })
-        //return res.send({name: file.name, path: `/${file.name}`})
     })
 
-    
+
 })
 
 app.get('/doctors', (req, res) => {
@@ -138,6 +138,7 @@ app.post('/isDoctor', (req, res) => {
     
 });
 
+});
 
 
 app.listen(process.env.PORT || port)
